@@ -1,3 +1,5 @@
+# coding=UTF-8
+
 from . import ExplorationTechnique
 import random
 import logging
@@ -21,6 +23,7 @@ class DFS(ExplorationTechnique):
         self.total_cover = set()
         self.count = 0
         random.seed()
+        l.info("init done")
 
     def setup(self, pg):
         if 'deferred' not in pg.stashes:
@@ -30,6 +33,7 @@ class DFS(ExplorationTechnique):
 
     def step(self, pg, stash, **kwargs):
 
+        # 已經走過的路徑 加進total_cover裡
         self.count = self.count + 1
         self.total_cover.update(self._get_past_hist(pg.stashes[stash][0]))
 
@@ -65,7 +69,7 @@ class DFS(ExplorationTechnique):
             pg.stashes['deferred'].pop(i)
             pg.stashes[stash].append(deepest)
 
-        if self.count % 50 == 0:
+        if self.count % 100 == 0:
             l.info(pg)
             l.info("DATA %s Round %d block %d","DFS" if pg._dfs else "MCTS",self.count,len(self.total_cover))
 
@@ -116,6 +120,8 @@ class DFS(ExplorationTechnique):
         addr_hist = path.info['cover']
         addr_hist.add(path.addr)
         addr_hist.update(self._simulate_future(path.addr))
+        # 模擬結果扣掉目前已經走過的blocks
+        addr_hist.difference_update(self.total_cover)
 
         return addr_hist
 
