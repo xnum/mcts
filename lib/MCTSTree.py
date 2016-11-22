@@ -26,15 +26,24 @@ class MCTSNode(object):
         """
         return self.type == "Simulated"
 
+    def is_dead(self):
+        return self.type == "Dead"
+
     def refresh_coverage(self):
         """
         calculate average coverage from children
         """
-        _sum = 0
-        for child in self.child:
-            _sum += child.coverage
-        self.coverage = _sum / (float)(len(self.child))
-        self.type = "Actual"
+        if len(self.child) != 0:
+            _sum = 0
+            somebody_alive = False
+            for child in self.child:
+                _sum += child.coverage
+                if not child.is_dead():
+                    somebody_alive = True 
+            self.coverage = _sum / (float)(len(self.child))
+            self.type = "Actual" if somebody_alive else "Dead"
+        else:
+            self.type = "Dead"
 
 class MCTSTree(object):
     """
@@ -61,21 +70,25 @@ class MCTSTree(object):
         for child in tnode.child:
             self.__bfs(callback, child, depth+1)
 
-    def select_node(self):
+    def select_node(self, node=None):
         """
         從MCTSTree中挑選最好的Node
         """
-        self.current = self.root
-        while True:
-            if self.current.is_simulated():
-                return self.current
-            ptr = None
-            for child in self.current.child:
-                if ptr is None:
+        node = self.root if node is None else node
+        # We shouldn't find a dead node
+        if node.is_dead():
+            return None
+        # 這個node的結果是模擬出來的 所以我們選擇他來expansion
+        if node.is_simulated():
+            self.current = node
+            return node
+        # 找到最好的child來遞迴
+        ptr = None
+        for child in node.child:
+            if not child.is_dead():
+                if ptr is None or ptr.coverage < child.coverage:
                     ptr = child
-                if ptr.coverage < child.coverage:
-                    ptr = child
-            self.current = ptr
+        return self.select_node(ptr)
 
     def add_child(self, data=None, coverage=None):
         """
@@ -98,31 +111,80 @@ if __name__ == '__main__':
     print "Empty Tree:"
     tree.debug()
 
+    print ""
 
-    print "\nAdd 2 Node"
     node = tree.select_node()
+    print "Selected Node: %s" % node.data
+    print "Add 2 Node"
     tree.add_child(data="A0", coverage=80)
     tree.add_child(data="A1", coverage=60)
     tree.refresh_tree()
     tree.debug()
 
-    print "\nAdd 1 Node"
+    print ""
+
     node = tree.select_node()
-    tree.add_child(data="B0", coverage=70)
+    print "Selected Node: %s" % node.data
+    print "Add 0 Node"
     tree.refresh_tree()
     tree.debug()
 
-    print "\nAdd 3 Node"
+    print ""
+
     node = tree.select_node()
+    print "Selected Node: %s" % node.data
+    print "Add 3 Node"
     tree.add_child(data="C0", coverage=40)
     tree.add_child(data="C1", coverage=30)
     tree.add_child(data="C2", coverage=50)
     tree.refresh_tree()
     tree.debug()
 
-    print "\nAdd 2 Node"
+    print ""
+
     node = tree.select_node()
+    print "Selected Node: %s" % node.data
+    print "Add 2 Node"
     tree.add_child(data="D0", coverage=50)
     tree.add_child(data="D1", coverage=55)
     tree.refresh_tree()
     tree.debug()
+    
+    print ""
+
+    node = tree.select_node()
+    print "Selected Node: %s" % node.data
+    print "Add 0 Node"
+    tree.refresh_tree()
+    tree.debug()
+ 
+    print ""
+
+    node = tree.select_node()
+    print "Selected Node: %s" % node.data
+    print "Add 0 Node"
+    tree.refresh_tree()
+    tree.debug()
+
+    print ""
+
+    node = tree.select_node()
+    print "Selected Node: %s" % node.data
+    print "Add 0 Node"
+    tree.refresh_tree()
+    tree.debug()
+
+    print ""
+
+    node = tree.select_node()
+    print "Selected Node: %s" % node.data
+    print "Add 0 Node"
+    tree.refresh_tree()
+    tree.debug()
+
+
+ 
+
+
+
+

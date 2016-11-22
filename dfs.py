@@ -39,10 +39,12 @@ class DFS(ExplorationTechnique):
         self.count = self.count + 1
         self.total_cover.update(self._get_past_hist(pg.stashes[stash][0]))
 
+
+        # expansion
         pg = pg.step(stash=stash, **kwargs)
 
-
-        if len(pg.stashes[stash]) >= 1:
+        # move all path to income
+        if len(pg.stashes[stash]) > 0:
             for a in pg.stashes[stash]:
                 a.info.clear()
             pg.stashes['income'].extend(pg.stashes[stash][:])
@@ -57,34 +59,41 @@ class DFS(ExplorationTechnique):
                 for times in range(50):
                     hist = self.simulation(a)
                     a.info['rate'].append(len(hist))
+                avg_cover = sum(a.info['rate']) / float(len(a.info['rate'])) \
+                if len(a.info['rate']) != 0 else len(a.info['cover'])
+                self.tree.add_child(data=a, coverage=avg_cover)
 
-        pg.stashes['deferred'].extend(pg.stashes['income'][:])
+        self.tree.refresh_tree()
+
+        # pg.stashes['deferred'].extend(pg.stashes['income'][:])
         del pg.stashes['income'][:]
 
         if len(pg.stashes[stash]) == 0:
-            if len(pg.stashes['deferred']) == 0:
-                return pg
+            # if len(pg.stashes['deferred']) == 0:
+            #     return pg
             if pg._dfs:
                 i, deepest = max(enumerate(pg.stashes['deferred']), key=lambda l: len(l[1].trace))
+                pg.stashes['deferred'].pop(i)
+                pg.stashes[stash].append(deepest)
             else:
-                i, deepest = self.pick_best(pg.stashes['deferred'])
-            pg.stashes['deferred'].pop(i)
-            pg.stashes[stash].append(deepest)
+                node = self.tree.select_node()
+                pg.stashes[stash].append(node.data)
 
-        if self.count % 100 == 0:
-            l.info(pg)
-            l.info("DATA %s Round %d block %d","DFS" if pg._dfs else "MCTS",self.count,len(self.total_cover))
+        # if self.count % 100 == 0:
+        l.info(pg)
+        l.info("DATA %s Round %d block %d","DFS" if pg._dfs else "MCTS",self.count,len(self.total_cover))
 
         return pg
 
+    def cal_val(pg, a):
+        avg_cover = sum(a.info['rate']) / float(len(a.info['rate'])) if len(a.info['rate']) != 0 else len(a.info['cover'])
+        avg_reward = avg_cover / float(self.total_nodes)
+        exp_value = math.sqrt( 2*math.log10(times) / float(a.info['pick']) )
+        res = avg_reward + exp_value
+        a.info['val'] = res
+        return res
+
     def selection(self, pg, stash, times):
-        def cal_val(pg, a):
-            avg_cover = sum(a.info['rate']) / float(len(a.info['rate'])) if len(a.info['rate']) != 0 else len(a.info['cover'])
-            avg_reward = avg_cover / float(self.total_nodes)
-            exp_value = math.sqrt( 2*math.log10(times) / float(a.info['pick']) )
-            res = avg_reward + exp_value
-            a.info['val'] = res
-            return res
         max_val = 0
         max_i = 0
         for i in range(0,len(pg.stashes['deferred'])):
@@ -123,7 +132,7 @@ class DFS(ExplorationTechnique):
         addr_hist.add(path.addr)
         addr_hist.update(self._simulate_future(path.addr))
         # 模擬結果扣掉目前已經走過的blocks
-        addr_hist.difference_update(self.total_cover)
+        # addr_hist.difference_update(self.total_cover)
 
         return addr_hist
 
