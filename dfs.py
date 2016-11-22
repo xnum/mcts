@@ -4,6 +4,7 @@ from . import ExplorationTechnique
 import random
 import logging
 import math 
+from MCTSTree import *
 
 l = logging.getLogger('angr.DFS')
 
@@ -15,6 +16,7 @@ class DFS(ExplorationTechnique):
     When we run out of active paths to step, we take the longest one from deferred and continue.
     """
     def __init__(self, project):
+        self.tree = MCTSTree()
         l.info("Init CFG")
         self.cfg = project.analyses.CFGFast(normalize=True)
         l.info("finding loop")
