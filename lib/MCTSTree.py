@@ -52,10 +52,12 @@ class MCTSNode(object):
     def best_child(self, c):
         max_child_val = -1
         max_child = None
+        max_coverage = max(self.child, key=lambda x: x.coverage)
         for child in self.child:
             if child.is_terminated():
                 continue
-            val = child.coverage/float(child.visit) + \
+            #val = child.coverage/float(child.visit) + \
+            val = child.coverage/float(max_coverage) + \
                   c * math.sqrt(2 * math.log10(self.visit) / float(child.visit)) \
                   if child.visit != 0 else 9999
             if val > max_child_val:
@@ -98,7 +100,7 @@ class MCTSTree(object):
                 self.current = node
                 return node
             else:
-                node = node.best_child(9/math.sqrt(2))
+                node = node.best_child(1/math.sqrt(2))
                 # print "Pick: %s" % node.data
 
     def add_child(self, data=None, coverage=None):

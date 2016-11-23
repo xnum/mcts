@@ -132,7 +132,7 @@ class DFS(ExplorationTechnique):
         addr_hist.add(path.addr)
         addr_hist.update(self._simulate_future(path.addr))
         # 模擬結果扣掉目前已經走過的blocks
-        # addr_hist.difference_update(self.total_cover)
+        addr_hist.difference_update(self.total_cover)
 
         return addr_hist
 
