@@ -79,9 +79,9 @@ class DFS(ExplorationTechnique):
                 node = self.tree.select_node()
                 pg.stashes[stash].append(node.data)
 
-        # if self.count % 100 == 0:
-        l.info(pg)
-        l.info("DATA %s Round %d block %d","DFS" if pg._dfs else "MCTS",self.count,len(self.total_cover))
+        if self.count % 100 == 0:
+            l.info(pg)
+            l.info("DATA %s Round %d block %d","DFS" if pg._dfs else "MCTS",self.count,len(self.total_cover))
 
         return pg
 
@@ -150,6 +150,8 @@ class DFS(ExplorationTechnique):
     def _get_past_hist(self, path):
         addr_hist = set()
 
+        #l.info(type(path))
+        #l.info(path)
         it = iter(path.addr_trace)
         try:
             for i in it:

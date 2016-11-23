@@ -1,5 +1,7 @@
 # coding=UTF-8
 
+import math
+
 """
 MCTS data structure
 """
@@ -11,39 +13,55 @@ class MCTSNode(object):
     def __init__(self, parent=None, coverage=None, data=None, child=None):
         self.parent = parent
         self.coverage = coverage if coverage != None else 0
-        self.type = "Simulated"
+        self.type = "Expandable"
         self.data = data
+        self.visit = 0
         self.child = child if child != None else []
 
-    def __repr__(self):
+    def __str__(self):
         return "<MCTSNode(%9s) Data:%4s Coverage:%2d Parent:%4s>" \
         % (self.type, self.data, self.coverage, \
         self.parent.data if self.parent != None else "None")
 
-    def is_simulated(self):
+    def is_expandable(self):
         """
         This node's coverage is fully simulated or deduce by its children
         """
-        return self.type == "Simulated"
+        return self.type == "Expandable"
 
-    def is_dead(self):
-        return self.type == "Dead"
+    def is_terminated(self):
+        return self.type == "Terminated"
 
     def refresh_coverage(self):
         """
         calculate average coverage from children
         """
+        self.visit += 1
         if len(self.child) != 0:
             _sum = 0
             somebody_alive = False
             for child in self.child:
                 _sum += child.coverage
-                if not child.is_dead():
+                if not child.is_terminated():
                     somebody_alive = True 
             self.coverage = _sum / (float)(len(self.child))
-            self.type = "Actual" if somebody_alive else "Dead"
+            self.type = "Visited" if somebody_alive else "Terminated"
         else:
-            self.type = "Dead"
+            self.type = "Terminated"
+
+    def best_child(self, c):
+        max_child_val = -1
+        max_child = None
+        for child in self.child:
+            if child.is_terminated():
+                continue
+            val = child.coverage/float(child.visit) + \
+                  c * math.sqrt(2 * math.log10(self.visit) / float(child.visit)) \
+                  if child.visit != 0 else 9999
+            if val > max_child_val:
+                max_child_val = val
+                max_child = child
+        return max_child
 
 class MCTSTree(object):
     """
@@ -72,23 +90,16 @@ class MCTSTree(object):
 
     def select_node(self, node=None):
         """
-        從MCTSTree中挑選最好的Node
+        從MCTSTree中挑選最好的Node (TreePolicy)
         """
         node = self.root if node is None else node
-        # We shouldn't find a dead node
-        if node.is_dead():
-            return None
-        # 這個node的結果是模擬出來的 所以我們選擇他來expansion
-        if node.is_simulated():
-            self.current = node
-            return node
-        # 找到最好的child來遞迴
-        ptr = None
-        for child in node.child:
-            if not child.is_dead():
-                if ptr is None or ptr.coverage < child.coverage:
-                    ptr = child
-        return self.select_node(ptr)
+        while not node.is_terminated():
+            if node.is_expandable():
+                self.current = node
+                return node
+            else:
+                node = node.best_child(1/math.sqrt(2))
+                # print "Pick: %s" % node.data
 
     def add_child(self, data=None, coverage=None):
         """
