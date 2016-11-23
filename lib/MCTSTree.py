@@ -98,7 +98,7 @@ class MCTSTree(object):
                 self.current = node
                 return node
             else:
-                node = node.best_child(1/math.sqrt(2))
+                node = node.best_child(9/math.sqrt(2))
                 # print "Pick: %s" % node.data
 
     def add_child(self, data=None, coverage=None):
