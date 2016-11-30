@@ -15,7 +15,7 @@ class DFS(ExplorationTechnique):
     Will only keep one path active at a time, any others will be stashed in the 'deferred' stash.
     When we run out of active paths to step, we take the longest one from deferred and continue.
     """
-    def __init__(self, project):
+    def __init__(self, project, method, limit):
         self.tree = MCTSTree()
         l.info("Init CFG")
         self.cfg = project.analyses.CFGFast(normalize=True)
@@ -24,6 +24,8 @@ class DFS(ExplorationTechnique):
         self.total_nodes = len(self.cfg.graph.nodes())
         self.total_cover = set()
         self.count = 0
+        self.method = method
+        self.limit = limit
         random.seed()
         l.info("init done")
 
@@ -33,18 +35,22 @@ class DFS(ExplorationTechnique):
         if 'income' not in pg.stashes:
             pg.stashes['income'] = []
 
+    def complete(self, pg):
+        if self.count >= self.limit:
+            l.info("Done | %s Round %d/%d block %d | %s", self.method ,self.count, self.limit, len(self.total_cover), pg)
+        return self.count >= self.limit
+
     def step(self, pg, stash, **kwargs):
 
         # 已經走過的路徑 加進total_cover裡
-        self.count = self.count + 1
+        self.count += len(pg.stashes[stash])
         self.total_cover.update(self._get_past_hist(pg.stashes[stash][0]))
-
 
         # expansion
         pg = pg.step(stash=stash, **kwargs)
 
         # move all path to income
-        if len(pg.stashes[stash]) > 0:
+        if len(pg.stashes[stash]) > 0 and self.method != "DEFAULT":
             for a in pg.stashes[stash]:
                 a.info.clear()
             pg.stashes['income'].extend(pg.stashes[stash][:])
@@ -61,27 +67,37 @@ class DFS(ExplorationTechnique):
                     a.info['rate'].append(len(hist))
                 avg_cover = sum(a.info['rate']) / float(len(a.info['rate'])) \
                 if len(a.info['rate']) != 0 else len(a.info['cover'])
-                self.tree.add_child(data=a, coverage=avg_cover)
+                if self.method == "MCTS":
+                    self.tree.add_child(data=a, coverage=avg_cover)
 
-        self.tree.refresh_tree()
+        if self.method == "MCTS":
+            self.tree.refresh_tree()
 
-        # pg.stashes['deferred'].extend(pg.stashes['income'][:])
+        if self.method != "MCTS":
+            pg.stashes['deferred'].extend(pg.stashes['income'][:])
         del pg.stashes['income'][:]
 
         if len(pg.stashes[stash]) == 0:
             # if len(pg.stashes['deferred']) == 0:
             #     return pg
-            if pg._dfs:
+            if self.method == "DFS":
                 i, deepest = max(enumerate(pg.stashes['deferred']), key=lambda l: len(l[1].trace))
                 pg.stashes['deferred'].pop(i)
                 pg.stashes[stash].append(deepest)
-            else:
+            elif self.method == "BFS":
+                i, deepest = max(enumerate(pg.stashes['deferred']), key=lambda l: -len(l[1].trace))
+                pg.stashes['deferred'].pop(i)
+                pg.stashes[stash].append(deepest)
+            elif self.method == "MCTS":
                 node = self.tree.select_node()
                 pg.stashes[stash].append(node.data)
+            elif self.method == "DEFAULT":
+                pass
+            else:
+                l.error("Unsupport method %s", self.method)
 
-        if self.count % 100 == 0:
-            l.info(pg)
-            l.info("DATA %s Round %d block %d","DFS" if pg._dfs else "MCTS",self.count,len(self.total_cover))
+        l.info(pg)
+        l.info("Method %s Round %d/%d block %d", self.method ,self.count, self.limit, len(self.total_cover))
 
         return pg
 

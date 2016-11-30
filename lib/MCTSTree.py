@@ -49,10 +49,15 @@ class MCTSNode(object):
         else:
             self.type = "Terminated"
 
+        self.data = None
+
     def best_child(self, c):
         max_child_val = -1
         max_child = None
-        max_coverage = max(self.child, key=lambda x: x.coverage)
+        max_coverage = 1
+        for child in self.child:
+            if max_coverage < child.coverage:
+                max_coverage = child.coverage 
         for child in self.child:
             if child.is_terminated():
                 continue
