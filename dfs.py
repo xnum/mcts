@@ -4,6 +4,7 @@ from . import ExplorationTechnique
 import random
 import logging
 import math 
+import os
 from MCTSTree import *
 
 l = logging.getLogger('angr.DFS')
@@ -26,6 +27,9 @@ class DFS(ExplorationTechnique):
         self.count = 0
         self.method = method
         self.limit = limit
+        self.last_print = 0
+        open(os.path.basename(project.filename)+"_"+self.method+".txt",'w').close()
+        self.fd = open(os.path.basename(project.filename)+"_"+self.method+".txt",'a')
         random.seed()
         l.info("init done")
 
@@ -46,8 +50,12 @@ class DFS(ExplorationTechnique):
         self.count += len(pg.stashes[stash])
         self.total_cover.update(self._get_past_hist(pg.stashes[stash][0]))
 
+        addr_before = pg.stashes[stash][0].addr
         # expansion
         pg = pg.step(stash=stash, **kwargs)
+
+        for a in pg.stashes[stash]:
+            self.fd.write("\"{0:#x}\" -> \"{1:#x}\"\n".format(addr_before,a.addr))
 
         # move all path to income
         if len(pg.stashes[stash]) > 0 and self.method != "DEFAULT":
@@ -96,8 +104,10 @@ class DFS(ExplorationTechnique):
             else:
                 l.error("Unsupport method %s", self.method)
 
-        l.info(pg)
-        l.info("Method %s Round %d/%d block %d", self.method ,self.count, self.limit, len(self.total_cover))
+        if self.count - self.last_print >= 100:
+            l.info(pg)
+            l.info("Method %s Round %d/%d block %d", self.method ,self.count, self.limit, len(self.total_cover))
+            self.last_print = self.count
 
         return pg
 
