@@ -42,7 +42,10 @@ class DFS(ExplorationTechnique):
 
     def complete(self, pg):
         if self.count >= self.limit:
-            l.info("Done | %s Round %d/%d block %d | %s", self.method ,self.count, self.limit, len(self.total_cover), pg)
+            if self.method != "MCTS":
+                l.info("Done | %s Round %d/%d block %d | %s", self.method ,self.count, self.limit, len(self.total_cover), pg)
+            else:
+                l.info("Done | %s Round %d/%d block %d | %s deferred:%d", self.method ,self.count, self.limit, len(self.total_cover), pg, self.tree.count_living_node())
         return self.count >= self.limit
 
     def step(self, pg, stash, **kwargs):

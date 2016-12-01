@@ -86,6 +86,7 @@ class MCTSTree(object):
             print "--%d: %s" % (depth, tnode)
         print_node(self.root, 1)
         self.__bfs(print_node, self.root)
+        print "living node: %d" % self.count_living_node()
 
     def __bfs(self, callback, tnode, depth=1):
         if tnode is None or tnode.child is None or len(tnode.child) == 0:
@@ -121,6 +122,15 @@ class MCTSTree(object):
         while self.current != None:
             self.current.refresh_coverage()
             self.current = self.current.parent
+
+    def count_living_node(self):
+        self.live_count = 0
+        def count_node(tnode, depth):
+            if tnode.is_expandable():
+                self.live_count += 1
+        self.__bfs(count_node, self.root)
+        return self.live_count
+
 
 
 if __name__ == '__main__':
