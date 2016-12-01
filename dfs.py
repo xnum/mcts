@@ -28,6 +28,7 @@ class DFS(ExplorationTechnique):
         self.method = method
         self.limit = limit
         self.last_print = 0
+        self.fm = project.kb.functions
         open(os.path.basename(project.filename)+"_"+self.method+".txt",'w').close()
         self.fd = open(os.path.basename(project.filename)+"_"+self.method+".txt",'a')
         random.seed()
@@ -51,11 +52,22 @@ class DFS(ExplorationTechnique):
         self.total_cover.update(self._get_past_hist(pg.stashes[stash][0]))
 
         addr_before = pg.stashes[stash][0].addr
+        addr_bef_name = self.fm.function(addr=addr_before)
+
         # expansion
         pg = pg.step(stash=stash, **kwargs)
 
         for a in pg.stashes[stash]:
-            self.fd.write("\"{0:#x}\" -> \"{1:#x}\"\n".format(addr_before,a.addr))
+            if addr_bef_name is None:
+                self.fd.write("\"{0:#x}\" ->".format(addr_before))
+            else:
+                self.fd.write("\"{0}\" ->".format(addr_bef_name.name))
+
+            addr_after_name = self.fm.function(addr=a.addr)
+            if addr_after_name is None:
+                self.fd.write("\"{0:#x}\"\n".format(a.addr))
+            else:
+                self.fd.write("\"{0}\"\n".format(addr_after_name.name))
 
         # move all path to income
         if len(pg.stashes[stash]) > 0 and self.method != "DEFAULT":
