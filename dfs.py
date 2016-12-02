@@ -19,7 +19,7 @@ class DFS(ExplorationTechnique):
     def __init__(self, project, method, limit):
         self.tree = MCTSTree()
         l.info("Init CFG")
-        self.cfg = project.analyses.CFGFast(normalize=True)
+        self.cfg = project.analyses.CFGAccurate(normalize=True)
         l.info("finding loop")
         self.loops = project.analyses.LoopFinder().loops
         self.total_nodes = len(self.cfg.graph.nodes())
@@ -43,9 +43,9 @@ class DFS(ExplorationTechnique):
     def complete(self, pg):
         if self.count >= self.limit:
             if self.method != "MCTS":
-                l.info("Done | %s Round %d/%d block %d | %s", self.method ,self.count, self.limit, len(self.total_cover), pg)
+                l.info("Done | %s Round %d/%d block %d/%d | %s", self.method ,self.count, self.limit, len(self.total_cover), self.total_nodes, pg)
             else:
-                l.info("Done | %s Round %d/%d block %d | %s deferred:%d", self.method ,self.count, self.limit, len(self.total_cover), pg, self.tree.count_living_node())
+                l.info("Done | %s Round %d/%d block %d/%d | %s deferred:%d", self.method ,self.count, self.limit, len(self.total_cover), self.total_nodes, pg, self.tree.count_living_node())
         return self.count >= self.limit
 
     def step(self, pg, stash, **kwargs):

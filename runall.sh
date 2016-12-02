@@ -6,7 +6,7 @@ mkdir ${now}
 cd ${now}
 limit=3000
 
-for file in ../*.py
+for file in ../mcts/scripts/*.py
 do
     echo "======================="
     for method in DFS BFS MCTS
