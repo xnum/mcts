@@ -19,7 +19,7 @@ class DFS(ExplorationTechnique):
     def __init__(self, project, method, limit):
         self.tree = MCTSTree()
         l.info("Init CFG")
-        self.cfg = project.analyses.CFGAccurate(normalize=True)
+        self.cfg = project.analyses.CFGFast(normalize=True)
         l.info("finding loop")
         self.loops = project.analyses.LoopFinder().loops
         self.total_nodes = len(self.cfg.graph.nodes())
@@ -83,15 +83,13 @@ class DFS(ExplorationTechnique):
             if 'rate' not in a.info:
                 a.info['rate'] = []
                 a.info['cover'] = self._get_past_hist(a)
-                a.info['pick'] = 1
-                a.info['val'] = 1
                 for times in range(50):
                     hist = self.simulation(a)
                     a.info['rate'].append(len(hist))
                 avg_cover = sum(a.info['rate']) / float(len(a.info['rate'])) \
                 if len(a.info['rate']) != 0 else len(a.info['cover'])
                 if self.method == "MCTS":
-                    self.tree.add_child(data=a, coverage=avg_cover)
+                    self.tree.add_child(data=a, coverage=avg_cover+len(a.trace))
 
         if self.method == "MCTS":
             self.tree.refresh_tree()
@@ -126,48 +124,6 @@ class DFS(ExplorationTechnique):
 
         return pg
 
-    def cal_val(pg, a):
-        avg_cover = sum(a.info['rate']) / float(len(a.info['rate'])) if len(a.info['rate']) != 0 else len(a.info['cover'])
-        avg_reward = avg_cover / float(self.total_nodes)
-        exp_value = math.sqrt( 2*math.log10(times) / float(a.info['pick']) )
-        res = avg_reward + exp_value
-        a.info['val'] = res
-        return res
-
-    def selection(self, pg, stash, times):
-        max_val = 0
-        max_i = 0
-        for i in range(0,len(pg.stashes['deferred'])):
-            val = cal_val(pg, pg.stashes['deferred'][i])
-            #l.info("%d %lf",i ,val)
-            if val > max_val:
-                max_i = i
-                max_val = val
-        highest = pg.stashes['deferred'][max_i]
-        highest.info['pick'] = highest.info['pick'] + 1
-        return max_i, highest
-        '''
-        i = random.randint(0,len(pg.stashes['deferred'])-1)
-        return i, pg.stashes['deferred'][i]
-        '''
-
-    def pick_best(self, stashes):
-        max_val = 0
-        max_i = 0
-        for i in range(0,len(stashes)):
-            val = sum(stashes[i].info['rate']) / float(len(stashes[i].info['rate']))
-            if val > max_val:
-                max_i = i
-                max_val = val
-        highest = stashes[max_i]
-        return max_i, highest
-        '''
-        i = random.randint(0,len(stashes)-1)
-        return i, stashes[i]
-        '''
-
-
-
     def simulation(self, path):
         addr_hist = path.info['cover']
         addr_hist.add(path.addr)
@@ -176,17 +132,6 @@ class DFS(ExplorationTechnique):
         addr_hist.difference_update(self.total_cover)
 
         return addr_hist
-
-    def backpropagation(self, pg, i, addr_hist):
-
-        # find = self.cfg.get_any_node(pg._find,anyaddr=True) if pg._find is None else None
-        find = None
-        if find is not None and find.addr in addr_hist:
-            #l.info("touch find")
-            pg.stashes['deferred'][i].info['rate'].append(self.total_nodes)
-        else:
-            pg.stashes['deferred'][i].info['rate'].append(len(addr_hist))
-        return
 
     def _get_past_hist(self, path):
         addr_hist = set()
@@ -205,13 +150,12 @@ class DFS(ExplorationTechnique):
         
     def _simulate_future(self, addr):
         addr_set = set()
-        while True:
+        for i in range(0, 500):
             addr = self._decide_next_node(addr)
             if not addr:
                 break
             addr_set.add(addr)
         return addr_set
-
 
     def _decide_next_node(self, addr):
         node = self.cfg.get_any_node(addr)
@@ -235,7 +179,4 @@ class DFS(ExplorationTechnique):
 
         succ = random.choice(succs)
         return succ.addr
-
-
-
 
