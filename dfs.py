@@ -24,6 +24,8 @@ class DFS(ExplorationTechnique):
         self.loops = project.analyses.LoopFinder().loops
         self.total_nodes = len(self.cfg.graph.nodes())
         self.total_cover = set()
+        self.a = 0.3
+        self.b = 0.7
         self.count = 0
         self.method = method
         self.limit = limit
@@ -89,7 +91,7 @@ class DFS(ExplorationTechnique):
                 avg_cover = sum(a.info['rate']) / float(len(a.info['rate'])) \
                 if len(a.info['rate']) != 0 else len(a.info['cover'])
                 if self.method == "MCTS":
-                    self.tree.add_child(data=a, coverage=avg_cover+len(a.trace))
+                    self.tree.add_child(data=a, coverage=self.a*avg_cover+self.b*len(a.trace))
 
         if self.method == "MCTS":
             self.tree.refresh_tree()
